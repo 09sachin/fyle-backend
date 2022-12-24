@@ -45,6 +45,19 @@ def test_grade_assignment_cross(client, h_teacher_2):
     assert data['error'] == 'FyleError'
 
 
+def test_grade_assignment(client, h_teacher_1):
+    response = client.post(
+        '/teacher/assignments/grade',
+        headers=h_teacher_1,
+        json={
+            "id": 1,
+            "grade": "A"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json
+
+
 def test_grade_assignment_bad_grade(client, h_teacher_1):
     """
     failure case: API should not allow only grades available in enum
@@ -62,6 +75,44 @@ def test_grade_assignment_bad_grade(client, h_teacher_1):
     data = response.json
 
     assert data['error'] == 'ValidationError'
+
+
+def test_grade_assignment_bad_payload(client, h_student_1):
+    """
+    failure case: Student is not allowed to grade
+    """
+    response = client.post(
+        '/teacher/assignments/grade',
+        headers=h_student_1,
+        json={
+            "id": 1,
+            "grade": "A"
+        }
+    )
+
+    assert response.status_code == 403
+    data = response.json
+
+    assert data['error'] == 'FyleError'
+
+
+def test_grade_assignment_bad_api(client, h_teacher_1):
+    """
+    failure case: Incorrect API
+    """
+    response = client.post(
+        '/teacher/assignments/submit',
+        headers=h_teacher_1,
+        json={
+            "id": 1,
+            "grade": "A"
+        }
+    )
+
+    assert response.status_code == 404
+    data = response.json
+
+    assert data['error'] == 'NotFound'
 
 
 def test_grade_assignment_bad_assignment(client, h_teacher_1):

@@ -65,6 +65,7 @@ class Assignment(db.Model):
         assertions.assert_found(assignment, 'No assignment with this id was found')
         assertions.assert_valid(assignment.student_id == principal.student_id, 'This assignment belongs to some other student')
         assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted')
+        assertions.assert_valid(assignment.state not in [AssignmentStateEnum.SUBMITTED, AssignmentStateEnum.GRADED] , 'only a draft assignment can be submitted')
 
         assignment.teacher_id = teacher_id
         assignment.state = AssignmentStateEnum.SUBMITTED
@@ -75,3 +76,21 @@ class Assignment(db.Model):
     @classmethod
     def get_assignments_by_student(cls, student_id):
         return cls.filter(cls.student_id == student_id).all()
+
+    @classmethod
+    def get_assignments_by_teacher(cls, teacher_id):
+        return cls.filter(cls.teacher_id == teacher_id, cls.state == AssignmentStateEnum.SUBMITTED).all()
+
+    @classmethod
+    def grade_assignment(cls, _id, grade, principal: Principal):
+        
+        assertions.validation(grade in [e for e in GradeEnum], "Invalid grade")
+        assignment = cls.filter(cls.id == _id, cls.state == AssignmentStateEnum.SUBMITTED).first()
+        assertions.assert_true(principal.teacher_id is not None, "No teacher id found")
+        assertions.assert_found(assignment, 'No assignment with this id was found')
+        assertions.assert_valid(assignment.teacher_id == principal.teacher_id, 'This assignment belongs to some other teacher')
+        assignment.grade = GradeEnum[grade]
+        assignment.state = AssignmentStateEnum.GRADED
+        db.session.flush()
+
+        return assignment
